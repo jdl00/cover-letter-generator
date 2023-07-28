@@ -1,3 +1,7 @@
 *.pdf
 *.json
 *.DS_Store
+
+resources/cv/
+resources/key/
+__pycache__/
