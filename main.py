@@ -1,0 +1,76 @@
+import os
+
+from helpers.cv_parser import CvParser
+from helpers.job_description_scraper import JobDescriptionScraper
+from helpers.api_handler import ApiHandler
+
+
+class CoverLetterGenerator():
+    CONST_CV_PATH = os.path.abspath("resources/cv")
+    CONST_KEY_PATH = os.path.abspath("resources/key")
+    CONST_EXIT_KEY = 'e'
+
+    def __init__(self):
+        self.__setup_cv_names()
+        self.__setup_api_key()
+
+    def __setup_cv_names(self):
+        self.__cvs = [file.name for file in os.scandir(self.CONST_CV_PATH)]
+        if not self.__cvs:
+            raise Exception("Failed to locate any cv files.")
+
+    def __setup_api_key(self):
+        keys = [file.name for file in os.scandir(self.CONST_KEY_PATH)]
+        if not keys or len(keys) > 1:
+            raise Exception("Failed to locate any key file.")
+        self.__api_key_path = os.path.join(self.CONST_KEY_PATH, keys[0])
+
+    def __choice_selection(self):
+        selected = None
+        while True:
+            selected = input()
+            try:
+                selected = int(selected)
+                if (selected >= 0 and
+                        selected <= len(self.__cvs) - 1):
+                    return selected
+                print("Selected option is not in valid range.")
+            except ValueError:
+                print("selected was not a number.")
+
+    def __main(self):
+        start_option = input("Press 'e' to exit. Enter to continue.\n")
+        if start_option.lower() == 'e':
+            return True
+
+        print("Located CVs: Select an option")
+        for idx, name in enumerate(self.__cvs):
+            print(f"{idx}: {name.split('.')[0]}")
+
+        selected_cv = self.__cvs[self.__choice_selection()]
+        cv_path = os.path.join(self.CONST_CV_PATH, selected_cv)
+
+        cv_parser = CvParser(cv_path)
+        parsed_cv = cv_parser.parse()
+        print(parsed_cv)
+
+        job_url = input("Enter the job url.")
+        job_desc_scraper = JobDescriptionScraper(job_url)
+        job_desc = job_desc_scraper.get_description()
+        print(job_desc)
+
+        openai_api = ApiHandler(self.__api_key_path, job_desc, parsed_cv)
+        openai_api.generate_prompt()
+
+    def main(self):
+        exit = False
+        while True:
+            exit = self.__main()
+
+            if exit:
+                break
+
+
+if __name__ == "__main__":
+    cover_letter_generator = CoverLetterGenerator()
+    cover_letter_generator.main()
